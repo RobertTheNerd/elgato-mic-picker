@@ -1,0 +1,8 @@
+node_modules/
+build/
+dist/
+package-lock.json
+*.sdPlugin/bin/
+*.sdPlugin/logs/
+*.sdPlugin/ui/sdpi-components.js
+docs/images/

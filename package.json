@@ -1,0 +1,57 @@
+{
+  "name": "elgato-mic-picker",
+  "version": "0.1.0",
+  "description": "Stream Deck plugin for macOS: one key per microphone. Press to make it the default input; press again to mute/unmute.",
+  "keywords": [
+    "stream-deck",
+    "elgato",
+    "streamdeck-plugin",
+    "microphone",
+    "macos",
+    "coreaudio",
+    "mute"
+  ],
+  "homepage": "https://github.com/RobertTheNerd/elgato-mic-picker#readme",
+  "bugs": "https://github.com/RobertTheNerd/elgato-mic-picker/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RobertTheNerd/elgato-mic-picker.git"
+  },
+  "license": "MIT",
+  "author": "Robert Wayne (https://github.com/RobertTheNerd)",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "os": [
+    "darwin"
+  ],
+  "scripts": {
+    "build": "npm run build:native && npm run build:js",
+    "build:native": "mkdir -p build && swiftc -O -target arm64-apple-macos12 native/micctl.swift -o build/micctl-arm64 && swiftc -O -target x86_64-apple-macos12 native/micctl.swift -o build/micctl-x86_64 && lipo -create build/micctl-arm64 build/micctl-x86_64 -output com.robert.mic-picker.sdPlugin/bin/micctl",
+    "build:js": "esbuild src/plugin.ts --bundle --platform=node --target=node24 --format=esm --sourcemap --outfile=com.robert.mic-picker.sdPlugin/bin/plugin.js --banner:js=\"import{createRequire}from'module';const require=createRequire(import.meta.url);\"",
+    "watch": "npm run build:js -- --watch",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "test:native": "scripts/test-native.sh",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "images": "node scripts/render-key-images.ts",
+    "check": "npm run format:check && npm run typecheck && npm test && npm run validate",
+    "link": "streamdeck link com.robert.mic-picker.sdPlugin",
+    "restart": "pkill -f com.robert.mic-picker.sdPlugin/bin/plugin.js; echo 'Stream Deck relaunches the plugin automatically'",
+    "validate": "streamdeck validate com.robert.mic-picker.sdPlugin",
+    "pack": "npm run build && mkdir -p dist && streamdeck pack com.robert.mic-picker.sdPlugin --output dist --force"
+  },
+  "dependencies": {
+    "@elgato/streamdeck": "^3.0.0"
+  },
+  "devDependencies": {
+    "@elgato/cli": "^1.10.0",
+    "@types/node": "^24.13.6",
+    "esbuild": "^0.28.2",
+    "prettier": "^3.9.9",
+    "typescript": "^7.0.2"
+  }
+}

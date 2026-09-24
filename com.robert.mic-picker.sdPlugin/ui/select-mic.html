@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<script src="sdpi-components.js"></script>
+	</head>
+	<body>
+		<sdpi-item label="Microphone">
+			<sdpi-select
+				setting="uid"
+				datasource="getDevices"
+				hot-reload
+				loading="Loading devices…"
+				placeholder="Choose a microphone"
+			></sdpi-select>
+		</sdpi-item>
+		<sdpi-item label="Title">
+			<sdpi-checkbox setting="hideName" label="Hide device name"></sdpi-checkbox>
+		</sdpi-item>
+	</body>
+</html>

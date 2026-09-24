@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run test:native
+      - run: npm run validate
+      - run: npx streamdeck pack com.robert.mic-picker.sdPlugin --output dist --force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: com.robert.mic-picker.streamDeckPlugin
+          path: dist/com.robert.mic-picker.streamDeckPlugin

@@ -1,0 +1,32 @@
+name: Bug report
+description: Something doesn't work as described.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you pressed, what you expected, and what the key showed instead.
+    validations:
+      required: true
+  - type: textarea
+    id: devices
+    attributes:
+      label: Input devices
+      description: |
+        Output of the helper's device list (UIDs can contain serial numbers; redact them if you like):
+        `~/Library/Application\ Support/com.elgato.StreamDeck/Plugins/com.robert.mic-picker.sdPlugin/bin/micctl list`
+      render: json
+  - type: textarea
+    id: logs
+    attributes:
+      label: Plugin log
+      description: The last lines of `…/com.robert.mic-picker.sdPlugin/logs/com.robert.mic-picker.0.log`.
+      render: text
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      placeholder: "plugin 0.1.0, Stream Deck 7.4, macOS 26.1, Apple silicon"
+    validations:
+      required: true

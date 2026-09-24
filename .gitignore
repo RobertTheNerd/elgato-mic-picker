@@ -1,0 +1,12 @@
+node_modules/
+build/
+dist/
+*.streamDeckPlugin
+
+# Build outputs inside the plugin bundle
+*.sdPlugin/bin/plugin.js
+*.sdPlugin/bin/plugin.js.map
+*.sdPlugin/bin/micctl
+*.sdPlugin/logs/
+
+.DS_Store

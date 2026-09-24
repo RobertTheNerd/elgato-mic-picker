@@ -1,0 +1,37 @@
+name: Release
+
+# Push a tag like v0.2.0 to build the plugin and attach it to a GitHub release.
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm run test:native
+
+      - name: Pack
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          npx streamdeck pack com.robert.mic-picker.sdPlugin --output dist --force --version "$version.0"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/com.robert.mic-picker.streamDeckPlugin \
+            --title "$GITHUB_REF_NAME" --generate-notes
