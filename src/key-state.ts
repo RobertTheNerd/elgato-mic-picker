@@ -14,6 +14,22 @@ export type KeyState =
 /** What pressing a key should do. */
 export type PressAction = "alert" | "make-default" | "toggle-mute";
 
+/**
+ * Finds the configured device in the snapshot: by UID first, then by name.
+ *
+ * The name fallback matters for USB audio devices without a serial number. macOS builds their UID from the USB
+ * port location (e.g. `AppleUSBAudioEngine:C-Media Electronics Inc.:JLab GO Talk:22200000:2`), so the UID
+ * changes when the device, or the hub it's on, is plugged into a different port. The fallback only applies when
+ * exactly one connected device has that name, so two identical mics are never mixed up.
+ */
+export function resolveDevice(saved: { uid?: string; name?: string }, snapshot: MicSnapshot): InputDevice | undefined {
+	if (!saved.uid) return undefined;
+	const byUid = snapshot.devices.find((d) => d.uid === saved.uid);
+	if (byUid || !saved.name) return byUid;
+	const byName = snapshot.devices.filter((d) => d.name === saved.name);
+	return byName.length === 1 ? byName[0] : undefined;
+}
+
 export function keyState(device: InputDevice | undefined, snapshot: MicSnapshot): KeyState {
 	if (!device) return "missing";
 	if (device.uid !== snapshot.default) return "inactive";

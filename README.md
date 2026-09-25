@@ -22,8 +22,10 @@ Each key always shows the mic's current state, even when you change inputs somew
   mute control, so every app (Zoom, Teams, Meet, OBS, …) stops getting audio.
 - **Always up to date.** Keys update right away when the default input or mute state changes, or when a device is
   plugged in or out. That includes changes made in System Settings or by another app. It doesn't poll.
-- **Keeps working after a replug.** Mics are saved by their CoreAudio UID, not their name. An unplugged mic keeps
-  its label and shows as unavailable until it comes back.
+- **Keeps working after a replug.** Mics are saved by their CoreAudio UID. If a USB mic comes back under a new
+  UID because it's on a different port or hub, the key finds it by name and saves the new UID. It won't guess
+  when two connected mics have the same name. An unplugged mic keeps its label and shows as unavailable until it
+  comes back.
 - **No extra software.** A small native helper ships inside the plugin. You don't need Homebrew or
   `SwitchAudioSource`.
 

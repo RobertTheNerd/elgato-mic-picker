@@ -1,5 +1,5 @@
 export type InputDevice = {
-	/** CoreAudio device UID; stable across reconnects and reboots. */
+	/** CoreAudio device UID. Usually stable, but USB devices without a serial number get a new one on a different port. */
 	uid: string;
 	name: string;
 	/** Input mute state; absent when the device has no mute control. */

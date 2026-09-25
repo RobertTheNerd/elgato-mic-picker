@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { keyState, pressAction, wrapTitle } from "../src/key-state.ts";
+import { keyState, pressAction, resolveDevice, wrapTitle } from "../src/key-state.ts";
 import type { InputDevice, MicSnapshot } from "../src/types.ts";
 
 const jlab: InputDevice = { uid: "usb:jlab", name: "JLab GO Talk", muted: false };
@@ -8,6 +8,41 @@ const builtIn: InputDevice = { uid: "BuiltInMicrophoneDevice", name: "MacBook Pr
 const iphone: InputDevice = { uid: "continuity:iphone", name: "iPhone Microphone" }; // no mute control
 
 const snapshot = (defaultUid: string, ...devices: InputDevice[]): MicSnapshot => ({ default: defaultUid, devices });
+
+describe("resolveDevice", () => {
+	// Real UIDs: the location ID segment changed after re-plugging the USB hub.
+	const before = "AppleUSBAudioEngine:C-Media Electronics Inc.:JLab GO Talk:22200000:2";
+	const after = "AppleUSBAudioEngine:C-Media Electronics Inc.:JLab GO Talk:21200000:2";
+	const replugged: InputDevice = { uid: after, name: "JLab GO Talk", muted: false };
+
+	it("finds the device by UID", () => {
+		assert.equal(resolveDevice({ uid: jlab.uid, name: "old name" }, snapshot(jlab.uid, jlab, builtIn)), jlab);
+	});
+
+	it("falls back to the name when the UID changed (USB device moved to another port)", () => {
+		assert.equal(resolveDevice({ uid: before, name: "JLab GO Talk" }, snapshot(after, replugged, builtIn)), replugged);
+	});
+
+	it("doesn't guess when two connected devices share the name", () => {
+		const twin: InputDevice = {
+			...replugged,
+			uid: "AppleUSBAudioEngine:C-Media Electronics Inc.:JLab GO Talk:21300000:2",
+		};
+		assert.equal(resolveDevice({ uid: before, name: "JLab GO Talk" }, snapshot(after, replugged, twin)), undefined);
+	});
+
+	it("is undefined when neither UID nor name matches", () => {
+		assert.equal(resolveDevice({ uid: before, name: "JLab GO Talk" }, snapshot(builtIn.uid, builtIn)), undefined);
+	});
+
+	it("is undefined when no device is configured", () => {
+		assert.equal(resolveDevice({}, snapshot(jlab.uid, jlab)), undefined);
+		assert.equal(
+			resolveDevice({ name: "JLab GO Talk" }, snapshot(jlab.uid, { ...jlab, name: "JLab GO Talk" })),
+			undefined,
+		);
+	});
+});
 
 describe("keyState", () => {
 	it("is missing when the device isn't connected or configured", () => {

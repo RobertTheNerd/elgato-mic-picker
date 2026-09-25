@@ -9,11 +9,11 @@ import streamDeck, {
 } from "@elgato/streamdeck";
 import type { JsonValue } from "@elgato/utils";
 import { KEY_IMAGES } from "../icons.ts";
-import { keyState, pressAction, wrapTitle } from "../key-state.ts";
+import { keyState, pressAction, resolveDevice, wrapTitle } from "../key-state.ts";
 import { mics } from "../mic-monitor.ts";
 
 type Settings = {
-	/** CoreAudio device UID of the configured microphone. */
+	/** CoreAudio device UID of the configured microphone (updated if the device reappears under a new UID). */
 	uid?: string;
 	/** Last known device name, so the key still has a label while the device is unplugged. */
 	name?: string;
@@ -40,7 +40,7 @@ export class SelectMic extends SingletonAction<Settings> {
 	}
 
 	override async onKeyDown(ev: KeyDownEvent<Settings>): Promise<void> {
-		const device = mics.find(ev.payload.settings.uid);
+		const device = resolveDevice(ev.payload.settings, mics.snapshot);
 		const todo = pressAction(device, mics.snapshot);
 		streamDeck.logger.info(`Key pressed: ${device?.name ?? ev.payload.settings.uid ?? "(unconfigured)"} → ${todo}`);
 		if (!device || todo === "alert") return ev.action.showAlert();
@@ -67,11 +67,14 @@ export class SelectMic extends SingletonAction<Settings> {
 
 	async #render(a: KeyAction<Settings>, settings?: Settings): Promise<void> {
 		settings ??= await a.getSettings();
-		const device = mics.find(settings.uid);
+		const device = resolveDevice(settings, mics.snapshot);
 
-		// Remember the device's name so it can still be shown while it's disconnected.
-		if (device && device.name !== settings.name) {
-			settings = { ...settings, name: device.name };
+		// Keep the saved UID and name current: the name so it can be shown while the device is unplugged, the UID
+		// because USB devices get a new one when they're plugged into a different port (see resolveDevice).
+		if (device && (device.uid !== settings.uid || device.name !== settings.name)) {
+			if (device.uid !== settings.uid)
+				streamDeck.logger.info(`${device.name}: UID changed ${settings.uid} → ${device.uid}`);
+			settings = { ...settings, uid: device.uid, name: device.name };
 			await a.setSettings(settings);
 		}
 

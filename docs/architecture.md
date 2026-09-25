@@ -66,8 +66,14 @@ Each key stores the following in the Stream Deck profile:
 { uid?: string; name?: string; hideName?: boolean }
 ```
 
-- `uid` is the CoreAudio device UID. It stays the same across reconnects and reboots.
+- `uid` is the CoreAudio device UID. It's usually stable, with one exception: USB audio devices without a serial
+  number get a UID built from their USB port location, for example
+  `AppleUSBAudioEngine:C-Media Electronics Inc.:JLab GO Talk:22200000:2`. Plugging the device, or its hub, into a
+  different port changes the UID.
 - `name` is kept in sync while the device is connected, so an unplugged mic still has a label.
+
+`resolveDevice()` in `key-state.ts` looks up a key's device by `uid` first. If that fails, it tries `name`, but
+only when exactly one connected device has that name. When the fallback matches, the key saves the new UID.
 
 ### Property inspector
 

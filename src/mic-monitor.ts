@@ -35,10 +35,6 @@ class MicMonitor extends EventEmitter<{ change: [MicSnapshot] }> {
 		});
 	}
 
-	find(uid: string | undefined): InputDevice | undefined {
-		return uid ? this.snapshot.devices.find((d) => d.uid === uid) : undefined;
-	}
-
 	setDefault(uid: string): Promise<void> {
 		return run("set", uid);
 	}
