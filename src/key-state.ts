@@ -53,3 +53,28 @@ export function wrapTitle(text: string, width = 10): string {
 	}
 	return lines.slice(0, 3).join("\n");
 }
+
+/** Why the preferred mic might need to become the default input again. */
+export type PreferredTrigger =
+	/** A new device snapshot arrived; `previous` is undefined for the first one after the plugin starts. */
+	| { kind: "snapshot"; previous: MicSnapshot | undefined }
+	/** The Mac woke from sleep. */
+	| { kind: "wake" };
+
+/**
+ * Returns the preferred mic if it should be made the default input now, otherwise undefined.
+ *
+ * The preferred mic takes over when the plugin starts, when the mic (re)connects, and when the Mac wakes, but only
+ * if it isn't already the default. It doesn't take over on other changes, so switching to another mic by hand sticks.
+ */
+export function preferredToRestore(
+	preferred: { uid?: string; name?: string } | undefined,
+	snapshot: MicSnapshot,
+	trigger: PreferredTrigger,
+): InputDevice | undefined {
+	if (!preferred) return undefined;
+	const device = resolveDevice(preferred, snapshot);
+	if (!device || device.uid === snapshot.default) return undefined;
+	if (trigger.kind === "wake" || !trigger.previous) return device;
+	return resolveDevice(preferred, trigger.previous) ? undefined : device; // only when it just connected
+}

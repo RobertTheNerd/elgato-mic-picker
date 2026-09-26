@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Preferred mic**: tick **Make default when it connects or the Mac wakes** on a key. That mic then becomes the
+  default input whenever it connects, the Mac wakes from sleep, or the plugin starts. Manual switches still stick
+  between those events.
+- `micctl watch` prints `{"event":"wake"}` after the Mac wakes from sleep.
+
 ### Fixed
 
 - A key no longer loses its USB mic after the mic, or the hub it's on, is plugged into a different port. macOS

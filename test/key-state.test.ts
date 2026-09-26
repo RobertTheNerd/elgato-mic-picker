@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { keyState, pressAction, resolveDevice, wrapTitle } from "../src/key-state.ts";
+import { keyState, preferredToRestore, pressAction, resolveDevice, wrapTitle } from "../src/key-state.ts";
 import type { InputDevice, MicSnapshot } from "../src/types.ts";
 
 const jlab: InputDevice = { uid: "usb:jlab", name: "JLab GO Talk", muted: false };
@@ -115,5 +115,55 @@ describe("wrapTitle", () => {
 
 	it("ignores surrounding and repeated whitespace", () => {
 		assert.equal(wrapTitle("  JLab   GO  "), "JLab GO");
+	});
+});
+
+describe("preferredToRestore", () => {
+	const preferred = { uid: jlab.uid, name: jlab.name };
+	const withJlab = snapshot(builtIn.uid, builtIn, jlab); // JLab connected, but the MacBook mic is the default
+	const withoutJlab = snapshot(builtIn.uid, builtIn);
+	const wake = { kind: "wake" } as const;
+	const after = (previous: MicSnapshot) => ({ kind: "snapshot", previous }) as const;
+
+	it("does nothing when no mic is preferred", () => {
+		assert.equal(preferredToRestore(undefined, withJlab, wake), undefined);
+	});
+
+	it("takes over when the plugin starts", () => {
+		assert.equal(preferredToRestore(preferred, withJlab, { kind: "snapshot", previous: undefined }), jlab);
+	});
+
+	it("takes over when the preferred mic connects", () => {
+		assert.equal(preferredToRestore(preferred, withJlab, after(withoutJlab)), jlab);
+	});
+
+	it("takes over when the Mac wakes", () => {
+		assert.equal(preferredToRestore(preferred, withJlab, wake), jlab);
+	});
+
+	it("lets a manual switch stick while the preferred mic stays connected", () => {
+		const jlabDefault = snapshot(jlab.uid, builtIn, jlab);
+		assert.equal(preferredToRestore(preferred, withJlab, after(jlabDefault)), undefined);
+	});
+
+	it("does nothing when the preferred mic is already the default", () => {
+		const jlabDefault = snapshot(jlab.uid, builtIn, jlab);
+		assert.equal(preferredToRestore(preferred, jlabDefault, wake), undefined);
+		assert.equal(preferredToRestore(preferred, jlabDefault, after(withoutJlab)), undefined);
+	});
+
+	it("does nothing when the preferred mic isn't connected", () => {
+		assert.equal(preferredToRestore(preferred, withoutJlab, wake), undefined);
+	});
+
+	it("finds the preferred mic after it moved to another USB port", () => {
+		const moved: InputDevice = { ...jlab, uid: "usb:jlab-on-another-port" };
+		assert.equal(preferredToRestore(preferred, snapshot(builtIn.uid, builtIn, moved), after(withoutJlab)), moved);
+	});
+
+	it("does nothing after a port change when macOS already picked the mic", () => {
+		const moved: InputDevice = { ...jlab, uid: "usb:jlab-on-another-port" };
+		const movedWhileDefault = snapshot(moved.uid, builtIn, moved);
+		assert.equal(preferredToRestore(preferred, movedWhileDefault, after(withJlab)), undefined);
 	});
 });

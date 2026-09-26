@@ -4,16 +4,22 @@ import path from "node:path";
 import { createInterface } from "node:readline";
 import streamDeck from "@elgato/streamdeck";
 
-import type { InputDevice, MicSnapshot } from "./types.ts";
+import type { MicSnapshot } from "./types.ts";
 
 const MICCTL = path.join(process.cwd(), "bin", "micctl");
 
 /**
  * Keeps an up-to-date view of the system's input devices by running `micctl watch`,
- * which pushes a new JSON snapshot whenever CoreAudio reports a change.
+ * which pushes a new JSON snapshot whenever CoreAudio reports a change, and a wake event after sleep.
  */
-class MicMonitor extends EventEmitter<{ change: [MicSnapshot] }> {
+class MicMonitor extends EventEmitter<{
+	/** `previous` is undefined for the first snapshot since the plugin started. */
+	change: [snapshot: MicSnapshot, previous: MicSnapshot | undefined];
+	wake: [];
+}> {
 	snapshot: MicSnapshot = { default: "", devices: [] };
+	/** Whether a real snapshot has arrived yet. */
+	ready = false;
 	#child?: ChildProcess;
 
 	start(): void {
@@ -22,8 +28,15 @@ class MicMonitor extends EventEmitter<{ change: [MicSnapshot] }> {
 		this.#child = child;
 		createInterface({ input: child.stdout! }).on("line", (line) => {
 			try {
-				this.snapshot = JSON.parse(line) as MicSnapshot;
-				this.emit("change", this.snapshot);
+				const message = JSON.parse(line) as MicSnapshot | { event: "wake" };
+				if ("event" in message) {
+					if (message.event === "wake") this.emit("wake");
+					return;
+				}
+				const previous = this.ready ? this.snapshot : undefined;
+				this.snapshot = message;
+				this.ready = true;
+				this.emit("change", message, previous);
 			} catch (err) {
 				streamDeck.logger.warn(`micctl: bad line ${line}`, err);
 			}

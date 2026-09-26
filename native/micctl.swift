@@ -3,7 +3,9 @@
 //   micctl list          -> {"default":"<uid>","devices":[{"uid":"…","name":"…"}]}
 //   micctl set <uid>     -> sets the system default input device
 //   micctl mute <uid> on|off|toggle -> changes the device's input mute
-//   micctl watch         -> prints the `list` JSON once, then again on every device/default change
+//   micctl watch         -> prints the `list` JSON once, then again on every device/default/mute change,
+//                           and {"event":"wake"} whenever the Mac wakes from sleep
+import AppKit
 import CoreAudio
 import Foundation
 
@@ -133,12 +135,16 @@ case "watch":
     var devicesAddr = address(kAudioHardwarePropertyDevices)
     AudioObjectAddPropertyListenerBlock(system, &devicesAddr, queue) { _, _ in watchMutes(); publish() }
     queue.sync { watchMutes(); publish() }
+    // Devices may stay connected through sleep while macOS picks another default input on wake, so say so.
+    NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: nil) { _ in
+        queue.async { print(#"{"event":"wake"}"#) }
+    }
     // Exit when the parent (Stream Deck plugin) goes away.
     let stdinSource = DispatchSource.makeReadSource(fileDescriptor: STDIN_FILENO, queue: .main)
     var buf = [UInt8](repeating: 0, count: 64)
     stdinSource.setEventHandler { if read(STDIN_FILENO, &buf, buf.count) <= 0 { exit(0) } }
     stdinSource.resume()
-    dispatchMain()
+    RunLoop.main.run() // unlike dispatchMain(), also delivers NSWorkspace notifications
 default:
     fail("usage: micctl list | set <uid> | mute <uid> on|off|toggle | watch", 2)
 }

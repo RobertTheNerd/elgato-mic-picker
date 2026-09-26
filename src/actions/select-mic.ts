@@ -11,6 +11,7 @@ import type { JsonValue } from "@elgato/utils";
 import { KEY_IMAGES } from "../icons.ts";
 import { keyState, pressAction, resolveDevice, wrapTitle } from "../key-state.ts";
 import { mics } from "../mic-monitor.ts";
+import { preferredMic } from "../preferred-mic.ts";
 
 type Settings = {
 	/** CoreAudio device UID of the configured microphone (updated if the device reappears under a new UID). */
@@ -19,6 +20,8 @@ type Settings = {
 	name?: string;
 	/** Don't show the device name as the key title. */
 	hideName?: boolean;
+	/** Make this mic the default whenever it connects or the Mac wakes. Mirrors the plugin-wide preferred mic. */
+	preferred?: boolean;
 };
 
 @action({ UUID: "com.robert.mic-picker.select" })
@@ -26,17 +29,25 @@ export class SelectMic extends SingletonAction<Settings> {
 	constructor() {
 		super();
 		mics.on("change", () => {
-			for (const a of this.actions) if (a.isKey()) void this.#render(a);
+			this.#renderAll();
 			void this.#sendDeviceList();
 		});
+		preferredMic.on("change", () => this.#renderAll());
 	}
 
 	override onWillAppear(ev: WillAppearEvent<Settings>): Promise<void> | void {
 		if (ev.action.isKey()) return this.#render(ev.action, ev.payload.settings);
 	}
 
-	override onDidReceiveSettings(ev: DidReceiveSettingsEvent<Settings>): Promise<void> | void {
-		if (ev.action.isKey()) return this.#render(ev.action, ev.payload.settings);
+	/** Fires when the user changes something in the property inspector. */
+	override async onDidReceiveSettings(ev: DidReceiveSettingsEvent<Settings>): Promise<void> {
+		const { uid, name, preferred } = ev.payload.settings;
+		if (preferred && uid) {
+			await preferredMic.set({ uid, name: mics.snapshot.devices.find((d) => d.uid === uid)?.name ?? name });
+		} else if (!preferred && preferredMic.is(uid)) {
+			await preferredMic.set(undefined);
+		}
+		if (ev.action.isKey()) await this.#render(ev.action, ev.payload.settings);
 	}
 
 	override async onKeyDown(ev: KeyDownEvent<Settings>): Promise<void> {
@@ -65,16 +76,23 @@ export class SelectMic extends SingletonAction<Settings> {
 		});
 	}
 
+	#renderAll(): void {
+		for (const a of this.actions) if (a.isKey()) void this.#render(a);
+	}
+
 	async #render(a: KeyAction<Settings>, settings?: Settings): Promise<void> {
 		settings ??= await a.getSettings();
 		const device = resolveDevice(settings, mics.snapshot);
 
-		// Keep the saved UID and name current: the name so it can be shown while the device is unplugged, the UID
-		// because USB devices get a new one when they're plugged into a different port (see resolveDevice).
-		if (device && (device.uid !== settings.uid || device.name !== settings.name)) {
-			if (device.uid !== settings.uid)
-				streamDeck.logger.info(`${device.name}: UID changed ${settings.uid} → ${device.uid}`);
-			settings = { ...settings, uid: device.uid, name: device.name };
+		// Keep the saved settings current: the name so it can be shown while the device is unplugged, the UID because
+		// USB devices get a new one when they're plugged into a different port (see resolveDevice), and the preferred
+		// checkbox because only one mic can be preferred, so choosing it on one key clears it on the others.
+		const next = { ...settings };
+		if (device) Object.assign(next, { uid: device.uid, name: device.name });
+		if (preferredMic.loaded) next.preferred = preferredMic.is(next.uid);
+		if (next.uid !== settings.uid || next.name !== settings.name || !!next.preferred !== !!settings.preferred) {
+			if (next.uid !== settings.uid) streamDeck.logger.info(`${next.name}: UID changed ${settings.uid} → ${next.uid}`);
+			settings = next;
 			await a.setSettings(settings);
 		}
 

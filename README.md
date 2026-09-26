@@ -22,6 +22,9 @@ Each key always shows the mic's current state, even when you change inputs somew
   mute control, so every app (Zoom, Teams, Meet, OBS, …) stops getting audio.
 - **Always up to date.** Keys update right away when the default input or mute state changes, or when a device is
   plugged in or out. That includes changes made in System Settings or by another app. It doesn't poll.
+- **Prefer a mic.** Tick one option on a key, and that mic becomes the default again whenever it
+  connects, the Mac wakes from sleep, or Stream Deck starts. That covers a hub replug or waking up in clamshell
+  mode. Switching to another mic by hand still sticks.
 - **Keeps working after a replug.** Mics are saved by their CoreAudio UID. If a USB mic comes back under a new
   UID because it's on a different port or hub, the key finds it by name and saves the new UID. It won't guess
   when two connected mics have the same name. An unplugged mic keeps its label and shows as unavailable until it
@@ -61,6 +64,21 @@ To build it yourself instead, see [Development](#development).
 2. Drag it onto a key.
 3. Click the key and choose a mic from the **Microphone** dropdown in the settings panel.
 4. Repeat for each mic you switch between.
+
+### Preferred mic
+
+Tick **Make default when it connects or the Mac wakes** on a key to make its mic the preferred mic. The plugin then
+makes it the default input:
+
+- when it connects (for example after you plug the mic or its hub back in),
+- when the Mac wakes from sleep, including with the lid closed, and
+- when Stream Deck starts, for example after a restart or login.
+
+It doesn't take over at any other time, so switching to another mic with a key or in System Settings sticks until
+one of those events happens. Only one mic can be preferred: ticking the box on one key clears it on the others.
+The Stream Deck app needs to be running for this to work. It normally starts at login.
+
+### Title
 
 The key's title shows the device name, word-wrapped to fit. To use your own title, tick **Hide device name** or set
 a title in the Stream Deck app.
@@ -141,7 +159,8 @@ The native helper also works as a standalone CLI:
 micctl list                        # {"default":"<uid>","devices":[{"uid":"…","name":"…","muted":false}, …]}
 micctl set <uid>                   # make <uid> the default input
 micctl mute <uid> on|off|toggle    # change a device's input mute
-micctl watch                       # print the list, then print it again on every change (exits on stdin EOF)
+micctl watch                       # print the list, then print it again on every change, plus {"event":"wake"}
+                                   # after sleep (exits on stdin EOF)
 ```
 
 Exit codes: `0` success, `1` device not found or change refused, `2` usage error.
