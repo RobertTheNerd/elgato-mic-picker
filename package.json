@@ -45,7 +45,7 @@
     "pack": "npm run build && mkdir -p dist && streamdeck pack com.robert.mic-picker.sdPlugin --output dist --force"
   },
   "dependencies": {
-    "@elgato/streamdeck": "^3.0.0"
+    "@elgato/streamdeck": "^3.0.1"
   },
   "devDependencies": {
     "@elgato/cli": "^1.10.0",
