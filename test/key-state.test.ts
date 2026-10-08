@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { keyState, preferredToRestore, pressAction, resolveDevice, wrapTitle } from "../src/key-state.ts";
+import {
+	keyState,
+	preferredToRestore,
+	pressAction,
+	resolveDevice,
+	withoutUsbPort,
+	wrapTitle,
+} from "../src/key-state.ts";
 import type { InputDevice, MicSnapshot } from "../src/types.ts";
 
 const jlab: InputDevice = { uid: "usb:jlab", name: "JLab GO Talk", muted: false };
@@ -23,6 +30,11 @@ describe("resolveDevice", () => {
 		assert.equal(resolveDevice({ uid: before, name: "JLab GO Talk" }, snapshot(after, replugged, builtIn)), replugged);
 	});
 
+	it("finds a moved USB device even when the saved name is wrong", () => {
+		// What a key looked like after a placeholder name (the UID) was saved around sleep.
+		assert.equal(resolveDevice({ uid: before, name: before }, snapshot(after, replugged, builtIn)), replugged);
+	});
+
 	it("doesn't guess when two connected devices share the name", () => {
 		const twin: InputDevice = {
 			...replugged,
@@ -41,6 +53,21 @@ describe("resolveDevice", () => {
 			resolveDevice({ name: "JLab GO Talk" }, snapshot(jlab.uid, { ...jlab, name: "JLab GO Talk" })),
 			undefined,
 		);
+	});
+});
+
+describe("withoutUsbPort", () => {
+	it("drops the port location from USB audio UIDs", () => {
+		assert.equal(
+			withoutUsbPort("AppleUSBAudioEngine:C-Media Electronics Inc.:JLab GO Talk:22200000:2"),
+			"AppleUSBAudioEngine:C-Media Electronics Inc.:JLab GO Talk:2",
+		);
+	});
+
+	it("ignores other UIDs", () => {
+		assert.equal(withoutUsbPort("BuiltInMicrophoneDevice"), undefined);
+		assert.equal(withoutUsbPort("EE76DA87-E5EE-47DA-8136-C92800000003"), undefined);
+		assert.equal(withoutUsbPort("AppleUSBAudioEngine:too:short"), undefined);
 	});
 });
 

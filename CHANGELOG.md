@@ -18,6 +18,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - A key no longer loses its USB mic after the mic, or the hub it's on, is plugged into a different port. macOS
   gives such devices a new UID, so the key now falls back to the device name (only when exactly one connected
   device has it) and saves the new UID.
+- A key could stop recognizing its mic after sleep. `micctl` reported a device whose name couldn't be read (as
+  happens while USB devices are shut down for sleep) with its UID as the name, and the key saved that as the
+  mic's name. Once the mic came back on another port, neither the UID nor the name matched. `micctl` now leaves
+  out such devices. Keys also match USB mics by UID with the port location removed, which repairs keys already
+  affected.
 
 ## [0.1.0] - 2026-09-24
 

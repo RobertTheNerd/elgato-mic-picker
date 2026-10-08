@@ -26,7 +26,7 @@ Each key always shows the mic's current state, even when you change inputs somew
   connects, the Mac wakes from sleep, or Stream Deck starts. That covers a hub replug or waking up in clamshell
   mode. Switching to another mic by hand still sticks.
 - **Keeps working after a replug.** Mics are saved by their CoreAudio UID. If a USB mic comes back under a new
-  UID because it's on a different port or hub, the key finds it by name and saves the new UID. It won't guess
+  UID because it's on a different port or hub, the key still recognizes it and saves the new UID. It won't guess
   when two connected mics have the same name. An unplugged mic keeps its label and shows as unavailable until it
   comes back.
 - **No extra software.** A small native helper ships inside the plugin. You don't need Homebrew or

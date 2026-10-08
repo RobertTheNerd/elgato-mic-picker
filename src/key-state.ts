@@ -15,19 +15,34 @@ export type KeyState =
 export type PressAction = "alert" | "make-default" | "toggle-mute";
 
 /**
- * Finds the configured device in the snapshot: by UID first, then by name.
+ * Finds the configured device in the snapshot: by UID, then by UID ignoring the USB port, then by name.
  *
- * The name fallback matters for USB audio devices without a serial number. macOS builds their UID from the USB
- * port location (e.g. `AppleUSBAudioEngine:C-Media Electronics Inc.:JLab GO Talk:22200000:2`), so the UID
- * changes when the device, or the hub it's on, is plugged into a different port. The fallback only applies when
- * exactly one connected device has that name, so two identical mics are never mixed up.
+ * The fallbacks matter for USB audio devices without a serial number. macOS builds their UID from the USB port
+ * location (e.g. `AppleUSBAudioEngine:C-Media Electronics Inc.:JLab GO Talk:22200000:2`), so the UID changes when
+ * the device, or the hub it's on, is plugged into a different port. Each fallback only applies when exactly one
+ * connected device matches, so two identical mics are never mixed up.
  */
 export function resolveDevice(saved: { uid?: string; name?: string }, snapshot: MicSnapshot): InputDevice | undefined {
 	if (!saved.uid) return undefined;
 	const byUid = snapshot.devices.find((d) => d.uid === saved.uid);
-	if (byUid || !saved.name) return byUid;
-	const byName = snapshot.devices.filter((d) => d.name === saved.name);
-	return byName.length === 1 ? byName[0] : undefined;
+	if (byUid) return byUid;
+	const portless = withoutUsbPort(saved.uid);
+	return (
+		only(snapshot.devices.filter((d) => portless !== undefined && withoutUsbPort(d.uid) === portless)) ??
+		only(snapshot.devices.filter((d) => saved.name !== undefined && d.name === saved.name))
+	);
+}
+
+/** `AppleUSBAudioEngine:<vendor>:<product>:<port location>:<interface>` without the port location. */
+export function withoutUsbPort(uid: string): string | undefined {
+	const parts = uid.split(":");
+	if (parts[0] !== "AppleUSBAudioEngine" || parts.length < 5) return undefined;
+	parts.splice(-2, 1);
+	return parts.join(":");
+}
+
+function only<T>(items: T[]): T | undefined {
+	return items.length === 1 ? items[0] : undefined;
 }
 
 export function keyState(device: InputDevice | undefined, snapshot: MicSnapshot): KeyState {

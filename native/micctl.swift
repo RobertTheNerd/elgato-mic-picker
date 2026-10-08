@@ -71,8 +71,11 @@ func inputDevice(uid: String) -> AudioDeviceID? {
 
 func snapshotJSON() -> String {
     let devices = allDeviceIDs().filter(hasInput).compactMap { id -> [String: Any]? in
-        guard let uid = stringProperty(id, kAudioDevicePropertyDeviceUID) else { return nil }
-        var device: [String: Any] = ["uid": uid, "name": stringProperty(id, kAudioObjectPropertyName) ?? uid]
+        // A device whose UID or name can't be read is still being set up or torn down (e.g. around sleep). Leave it
+        // out rather than reporting a placeholder name, which the plugin would save as the device's real name.
+        guard let uid = stringProperty(id, kAudioDevicePropertyDeviceUID),
+              let name = stringProperty(id, kAudioObjectPropertyName) else { return nil }
+        var device: [String: Any] = ["uid": uid, "name": name]
         if let muted = isMuted(id) { device["muted"] = muted }
         return device
     }

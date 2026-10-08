@@ -89,8 +89,15 @@ Each key stores the following in the Stream Deck profile:
   different port changes the UID.
 - `name` is kept in sync while the device is connected, so an unplugged mic still has a label.
 
-`resolveDevice()` in `key-state.ts` looks up a key's device by `uid` first. If that fails, it tries `name`, but
-only when exactly one connected device has that name. When the fallback matches, the key saves the new UID.
+`resolveDevice()` in `key-state.ts` looks up a key's device by `uid` first. If that fails, it tries two
+fallbacks in order:
+
+1. The `uid` with the USB port location removed (`withoutUsbPort()`), which matches the same vendor, product, and
+   interface on any port.
+2. The saved `name`.
+
+Each fallback only counts when exactly one connected device matches. When a fallback matches, the key saves the
+device's new UID and name.
 
 ### Property inspector
 
