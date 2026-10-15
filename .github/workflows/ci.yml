@@ -28,7 +28,7 @@ jobs:
       - run: npm run validate
       - run: npx streamdeck pack com.robert.mic-picker.sdPlugin --output dist --force
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: com.robert.mic-picker.streamDeckPlugin
           path: dist/com.robert.mic-picker.streamDeckPlugin
