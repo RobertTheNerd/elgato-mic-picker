@@ -48,10 +48,10 @@
     "@elgato/streamdeck": "^3.0.0"
   },
   "devDependencies": {
-    "@elgato/cli": "^1.10.0",
-    "@types/node": "^24.13.6",
+    "@elgato/cli": "^1.10.3",
+    "@types/node": "^26.6.6",
     "esbuild": "^0.28.2",
-    "prettier": "^3.9.9",
+    "prettier": "^3.9.10",
     "typescript": "^7.0.2"
   }
 }
